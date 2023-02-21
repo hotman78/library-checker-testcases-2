@@ -33,6 +33,7 @@ jobs:
     - name: run job
       run: |
         ulimit -s unlimited
+        chmod -x ./frontend/main.py
         ./frontend/main.py
     - name: Deploy website
       uses: peaceiris/actions-gh-pages@v3
