@@ -1,13 +1,22 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Deploy GitHub Pages
 
 on:
-#   schedule:
-#     - cron:  '0 0 * * *'
   push:
-    branches: [ main ]
+    branches: ["main"]
+
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,24 +44,13 @@ jobs:
         ulimit -s unlimited
         chmod +x ./frontend/main.py
         ./frontend/main.py
-    - name: Deploy website
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        personal_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: frontend/build
-        keep_files: true
-        allow_empty_commit: true
-    - name: auto commit
-      run: |
-        if [[ `git diff .cache.json` != '' ]]; then
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .cache.json
-          git commit -m "[auto commit]" --allow-empty
-          git pull
-          git push origin main
-        fi
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
