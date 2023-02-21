@@ -11,7 +11,7 @@ import sys
 import os
 
 params = {'problems':{}}
-env = Environment(loader=FileSystemLoader('./', encoding='utf8'))
+env = Environment(loader=FileSystemLoader('./frontend', encoding='utf8'))
 version_hash = subprocess.run("git rev-parse HEAD",shell=True,cwd="./library-checker-problems",stdout=subprocess.PIPE).stdout.decode()
 is_local = "--local" in sys.argv
 
