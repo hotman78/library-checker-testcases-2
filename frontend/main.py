@@ -15,9 +15,6 @@ env = Environment(loader=FileSystemLoader('./', encoding='utf8'))
 version_hash = subprocess.run("git rev-parse HEAD",shell=True,cwd="./library-checker-problems",stdout=subprocess.PIPE).stdout.decode()
 is_local = "--local" in sys.argv
 
-with open('.cache.json') as f:
-    hashlist = json.load(f)
-
 def make_problem_page(category,name):
     params['problems'].setdefault(category,[])
     params['problems'][category].append(name)
