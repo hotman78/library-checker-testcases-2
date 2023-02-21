@@ -44,6 +44,10 @@ jobs:
         ulimit -s unlimited
         chmod +x ./frontend/main.py
         ./frontend/main.py
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: frontend/build
   deploy:
     environment:
       name: github-pages
