@@ -1,0 +1,57 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+on:
+#   schedule:
+#     - cron:  '0 0 * * *'
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Checkout other repo
+      uses: actions/checkout@v2
+      with:
+        path: library-checker-problems
+        repository: yosupo06/library-checker-problems
+        fetch-depth: 0
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+        architecture: 'x64'
+    - name: setup-python-settings
+      run: |
+        cd library-checker-problems
+        pip3 install -r requirements.txt
+        pip3 install toml
+    - name: run job
+      run: |
+        ulimit -s unlimited
+        ./frontend/main.py
+    - name: Deploy website
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.PERSONAL_TOKEN }}
+        publish_dir: frontend/build
+        keep_files: true
+        allow_empty_commit: true
+    - name: auto commit
+      run: |
+        if [[ `git diff .cache.json` != '' ]]; then
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .cache.json
+          git commit -m "[auto commit]" --allow-empty
+          git pull
+          git push origin main
+        fi
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
