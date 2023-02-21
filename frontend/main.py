@@ -19,7 +19,7 @@ def make_problem_page(category,name):
     params['problems'][category].append(name)
     path=category+"/"+name
     problem_params={"dir":"{0}".format(path),"testcases":[]}
-    tomls=toml.load("../library-checker-problems/{0}/info.toml".format(path))
+    tomls=toml.load("./library-checker-problems/{0}/info.toml".format(path))
     for cases in tomls["tests"]:
         casename='.'.join(cases["name"].split('.')[:-1])
         for i in range(0,int(cases["number"])):
