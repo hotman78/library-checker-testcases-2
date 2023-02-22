@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-from flask import Flask
+from flask import Flask, request, send_from_directory
 from os.path import dirname, basename
 from problem import check_call_to_file, casename, execcmd, compile, Problem
+import generate
 from pathlib import Path
 from logging import Logger, basicConfig, getLogger, INFO
 import shutil
@@ -13,19 +14,52 @@ app = Flask(__name__)
 def hello_world():
     return "please access /api/<name>"
 
-@app.route("/api/<path:problem_name>")
-def main(problem_name):
+def make_case(problem_name):
     rootdir="."
     if basename(dirname(problem_name)) == 'in':
         make_input(Path(dirname(dirname(problem_name))),basename(problem_name))
     else:
         make_output(Path(dirname(dirname(problem_name))),basename(problem_name))
-    f = open(problem_name, 'r')
-    data = f.read()
-    f.close()
-    return data, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
-        
+@app.route("/api/view/<path:problem_name>")
+def view(problem_name):
+    make_case(problem_name)
+    def generate():
+        with open(problem_name, 'r') as f:
+            for line in f:
+                yield line
+    return generate(), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
+@app.route("/api/dl/<path:problem_name>")
+def download(problem_name):
+    make_case(problem_name)
+    return send_from_directory(
+        '.',
+        problem_name,
+        as_attachment=True
+    )
+
+@app.route("/api/dlall/<path:problem_name>")
+def all_download(problem_name):
+    generate.main(['-p', problem_name])
+    output = Path(problem_name) / basename(problem_name)
+    build = Path('./build')
+    if build.exists():
+        shutil.rmtree(str(build))
+    build.mkdir()
+    if output.exists():
+        shutil.rmtree(str(output))
+    output.mkdir()
+    shutil.move( Path(problem_name) / 'in', output / 'in' )
+    shutil.move( Path(problem_name) / 'out', output / 'out' )
+
+    shutil.make_archive( build / basename(problem_name) , 'zip', root_dir=output )
+    return send_from_directory(
+        '.',
+        build / ( basename(problem_name) + '.zip' ),
+        as_attachment=True
+    )
+
 def make_input(basedir, casename):
     prob = Problem(Path('.'), basedir)
     indir = basedir / 'in'
