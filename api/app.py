@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, abort, Response, stream_with_context
+from werkzeug.exceptions import NotFound
 from os.path import dirname, basename
 from problem import check_call_to_file, casename, execcmd, compile, Problem
 import generate
@@ -9,6 +10,13 @@ import shutil
 
 logger = getLogger(__name__)
 app = Flask(__name__)
+
+app.errorhandler(NotFound)
+def not_found(e):
+    return "handling NotFound"
+app.route('/test/abort/notfound')
+def abort_not_found():
+    abort(404)
 
 @app.route("/")
 def hello_world():
@@ -21,23 +29,33 @@ def make_case(problem_name):
     else:
         make_output(Path(dirname(dirname(problem_name))),basename(problem_name))
 
+CHUNK_SIZE = 8192
+def read_file_chunks(path):
+    with open(path, 'rb') as fd:
+        while 1:
+            buf = fd.read(CHUNK_SIZE)
+            if buf:
+                yield buf
+            else:
+                break
+
 @app.route("/api/view/<path:problem_name>")
 def view(problem_name):
     make_case(problem_name)
-    def generate():
-        with open(problem_name, 'r') as f:
-            for line in f:
-                yield line
-    return generate(), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    fp = Path(problem_name)
+    if fp.exists():
+        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        raise NotFound
 
 @app.route("/api/dl/<path:problem_name>")
 def download(problem_name):
     make_case(problem_name)
-    return send_from_directory(
-        '.',
-        problem_name,
-        as_attachment=True
-    )
+    fp = Path(problem_name)
+    if fp.exists():
+        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Disposition': f'attachment; filename={basename(problem_name)}','Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        raise NotFound
 
 @app.route("/api/dlall/<path:problem_name>")
 def all_download(problem_name):
@@ -54,11 +72,12 @@ def all_download(problem_name):
     shutil.move( Path(problem_name) / 'out', output / 'out' )
 
     shutil.make_archive( build / basename(problem_name) , 'zip', root_dir=output )
-    return send_from_directory(
-        '.',
-        build / ( basename(problem_name) + '.zip' ),
-        as_attachment=True
-    )
+    fp = build / ( basename(problem_name) + '.zip' )
+    filename = basename(problem_name)+'.zip'
+    if fp.exists():
+        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Disposition': f'attachment; filename={filename}','Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        raise NotFound
 
 def make_input(basedir, casename):
     prob = Problem(Path('.'), basedir)
