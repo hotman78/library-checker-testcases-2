@@ -44,7 +44,11 @@ def view(problem_name):
     make_case(problem_name)
     fp = Path(problem_name)
     if fp.exists():
-        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+        return stream_with_context(read_file_chunks(fp)), 200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Strict-Transport-Security': 'max-age=31536000',
+            'Cache-Control': 'public, max-age=3600'
+        }
     else:
         raise NotFound
 
@@ -53,7 +57,12 @@ def download(problem_name):
     make_case(problem_name)
     fp = Path(problem_name)
     if fp.exists():
-        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Disposition': f'attachment; filename={basename(problem_name)}','Content-Type': 'text/plain; charset=utf-8'}
+        return stream_with_context(read_file_chunks(fp)), 200, {
+        'Content-Disposition': f'attachment; filename={basename(problem_name)}',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Strict-Transport-Security': 'max-age=31536000',
+        'Cache-Control': 'public, max-age=3600'
+    }
     else:
         raise NotFound
 
@@ -75,7 +84,12 @@ def all_download(problem_name):
     fp = build / ( basename(problem_name) + '.zip' )
     filename = basename(problem_name)+'.zip'
     if fp.exists():
-        return stream_with_context(read_file_chunks(fp)), 200, {'Content-Disposition': f'attachment; filename={filename}','Content-Type': 'text/plain; charset=utf-8'}
+        return stream_with_context(read_file_chunks(fp)), 200, {
+            'Content-Disposition': f'attachment; filename={filename}',
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Strict-Transport-Security': 'max-age=31536000',
+            'Cache-Control': 'public, max-age=3600'
+        }
     else:
         raise NotFound
 
