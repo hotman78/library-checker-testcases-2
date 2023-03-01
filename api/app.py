@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, request, send_from_directory, abort, Response, stream_with_context
+from flask import Flask, request, send_from_directory, abort, Response, stream_with_context, redirect
 from werkzeug.exceptions import NotFound
 from os.path import dirname, basename
 from problem import check_call_to_file, casename, execcmd, compile, Problem
@@ -7,8 +7,7 @@ import generate
 from pathlib import Path
 from logging import Logger, basicConfig, getLogger, INFO
 import shutil
-from subprocess import (DEVNULL, PIPE, STDOUT, CalledProcessError,
-                        TimeoutExpired, call, check_call, check_output, run)
+import subprocess
 logger = getLogger(__name__)
 app = Flask(__name__)
 
@@ -44,7 +43,14 @@ def read_file_chunks(path):
 def view(problem_name):
     dl = request.args.get('dl','false')
     commit = request.args.get('commit','master')
-    check_call('git checkout {}'.format(commit).split())
+    if commit == 'master':
+        proc = subprocess.run('git rev-parse master'.split(), stdout = subprocess.PIPE)
+        master_hash = proc.stdout.decode("utf8").split()[0]
+        if dl=='true':
+            return redirect(f'/api/{problem_name}?commit={master_hash}&dl=true')
+        else:
+            return redirect(f'/api/{problem_name}?commit={master_hash}')
+    subprocess.run('git checkout {}'.format(commit).split())
     make_case(problem_name)
     fp = Path(problem_name)
     if fp.exists():
