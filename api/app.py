@@ -7,7 +7,8 @@ import generate
 from pathlib import Path
 from logging import Logger, basicConfig, getLogger, INFO
 import shutil
-
+from subprocess import (DEVNULL, PIPE, STDOUT, CalledProcessError,
+                        TimeoutExpired, call, check_call, check_output, run)
 logger = getLogger(__name__)
 app = Flask(__name__)
 
@@ -39,59 +40,23 @@ def read_file_chunks(path):
             else:
                 break
 
-@app.route("/api/view/<path:problem_name>")
+@app.route("/api/<path:problem_name>")
 def view(problem_name):
+    dl = request.args.get('dl','false')
+    commit = request.args.get('commit','master')
+    check_call('git checkout {}'.format(commit).split())
     make_case(problem_name)
     fp = Path(problem_name)
     if fp.exists():
         return stream_with_context(read_file_chunks(fp)), 200, {
+            'Content-Disposition': f'attachment; filename={basename(problem_name)}' if dl=='true' else 'inline',
             'Content-Type': 'text/plain; charset=utf-8',
             'Strict-Transport-Security': 'max-age=31536000',
-            'Cache-Control': 'public, max-age=3600'
+            'Cache-Control': 'public, max-age={}'.format(3600 if commit == 'master' else 86400)
         }
     else:
         raise NotFound
 
-@app.route("/api/dl/<path:problem_name>")
-def download(problem_name):
-    make_case(problem_name)
-    fp = Path(problem_name)
-    if fp.exists():
-        return stream_with_context(read_file_chunks(fp)), 200, {
-        'Content-Disposition': f'attachment; filename={basename(problem_name)}',
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Strict-Transport-Security': 'max-age=31536000',
-        'Cache-Control': 'public, max-age=3600'
-    }
-    else:
-        raise NotFound
-
-@app.route("/api/dlall/<path:problem_name>")
-def all_download(problem_name):
-    generate.main(['-p', problem_name])
-    output = Path(problem_name) / basename(problem_name)
-    build = Path('./build')
-    if build.exists():
-        shutil.rmtree(str(build))
-    build.mkdir()
-    if output.exists():
-        shutil.rmtree(str(output))
-    output.mkdir()
-    shutil.move( Path(problem_name) / 'in', output / 'in' )
-    shutil.move( Path(problem_name) / 'out', output / 'out' )
-
-    shutil.make_archive( build / basename(problem_name) , 'zip', root_dir=output )
-    fp = build / ( basename(problem_name) + '.zip' )
-    filename = basename(problem_name)+'.zip'
-    if fp.exists():
-        return stream_with_context(read_file_chunks(fp)), 200, {
-            'Content-Disposition': f'attachment; filename={filename}',
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Strict-Transport-Security': 'max-age=31536000',
-            'Cache-Control': 'public, max-age=3600'
-        }
-    else:
-        raise NotFound
 
 def make_input(basedir, casename):
     prob = Problem(Path('.'), basedir)
