@@ -20,7 +20,7 @@ def abort_not_found():
 
 @app.route("/")
 def hello_world():
-    return "please access /api/<name>"
+    return "please access /api/<name><br><a href='/api/sample/aplusb/in/example_00.in'>(example)</a>"
 
 def make_case(problem_name):
     rootdir="."
@@ -58,7 +58,8 @@ def view(problem_name):
             'Content-Disposition': f'attachment; filename={basename(problem_name)}' if dl=='true' else 'inline',
             'Content-Type': 'text/plain; charset=utf-8',
             'Strict-Transport-Security': 'max-age=31536000',
-            'Cache-Control': 'public, max-age={}'.format(3600 if commit == 'master' else 86400)
+            'Cache-Control': 'public, max-age={}'.format(3600 if commit == 'master' else 86400),
+            'Access-Control-Allow-Origin': '*'
         }
     else:
         raise NotFound
