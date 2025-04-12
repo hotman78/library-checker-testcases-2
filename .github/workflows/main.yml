@@ -48,7 +48,7 @@ jobs:
         chmod +x ./frontend/main.py
         ./frontend/main.py
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v1
+      uses: actions/upload-pages-artifact@v4
       with:
         path: build
   deploy:
