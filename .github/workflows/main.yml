@@ -42,6 +42,7 @@ jobs:
         cd library-checker-problems
         pip3 install -r requirements.txt
         pip3 install toml
+        pip3 install jinja2
     - name: run job
       run: |
         ulimit -s unlimited
